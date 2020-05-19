@@ -46,6 +46,9 @@ static gboolean capture(GtkWidget *widget, GdkEvent *event, gpointer user_data)
 {
 	data_t *data = user_data;
 
+	if (data->signal_id == 0)
+		return FALSE;
+
 	if (data->context == NULL) {
 		gtk_widget_get_allocation(GTK_WIDGET(data->webview),
 					  &data->allocation);
