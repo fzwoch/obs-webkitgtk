@@ -23,6 +23,8 @@
 
 OBS_DECLARE_MODULE()
 
+GThread *thread;
+
 typedef struct {
 	GtkWidget *window;
 	WebKitWebView *webview;
@@ -214,6 +216,13 @@ static void hide(void *p)
 		stop(data);
 }
 
+static gpointer gtk_loop(gpointer data)
+{
+	gtk_main();
+
+	return NULL;
+}
+
 bool obs_module_load(void)
 {
 	struct obs_source_info info = {
@@ -235,6 +244,10 @@ bool obs_module_load(void)
 	};
 
 	obs_register_source(&info);
+
+	// okay.. we need a run loop.. some other components
+	// may have already one running. i thinks thats bad.
+	thread = g_thread_new(NULL, gtk_loop, NULL);
 
 	return true;
 }
