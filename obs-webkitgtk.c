@@ -56,7 +56,7 @@ static gboolean capture(GtkWidget *widget, GdkEvent *event, gpointer user_data)
 	frame.width = cairo_image_surface_get_width(surface);
 	frame.height = cairo_image_surface_get_height(surface);
 	frame.format = VIDEO_FORMAT_BGRA;
-	frame.linesize[0] = cairo_image_surface_get_width(surface) * 4;
+	frame.linesize[0] = cairo_image_surface_get_stride(surface);
 	frame.data[0] = cairo_image_surface_get_data(surface);
 
 	frame.timestamp = data->count++;
