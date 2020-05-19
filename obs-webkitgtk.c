@@ -115,8 +115,7 @@ static gboolean start_gtk(gpointer user_data)
 	data->signal_id = g_signal_connect(data->window, "damage-event",
 					   G_CALLBACK(capture), data);
 
-	data->signal_id = g_signal_connect(data->window, "destroy",
-					   G_CALLBACK(cleanup), data);
+	g_signal_connect(data->window, "destroy", G_CALLBACK(cleanup), data);
 
 	return FALSE;
 }
@@ -141,9 +140,9 @@ static void stop(data_t *data)
 	if (data->signal_id == 0)
 		return;
 
-	g_idle_add(stop_gtk, data);
-
 	data->signal_id = 0;
+
+	g_idle_add(stop_gtk, data);
 }
 
 static void update(void *p, obs_data_t *settings)
