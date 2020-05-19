@@ -28,7 +28,6 @@ GThread *thread;
 typedef struct {
 	GtkWidget *window;
 	WebKitWebView *webview;
-	GtkAllocation allocation;
 	int count;
 	gulong signal_id;
 	bool destroy_self;
@@ -49,20 +48,15 @@ static gboolean capture(GtkWidget *widget, GdkEvent *event, gpointer user_data)
 	if (data->signal_id == 0)
 		return FALSE;
 
-	if (data->count == 0) {
-		gtk_widget_get_allocation(GTK_WIDGET(data->webview),
-					  &data->allocation);
-	}
-
 	cairo_surface_t *surface = gtk_offscreen_window_get_surface(
 		GTK_OFFSCREEN_WINDOW(data->window));
 
 	struct obs_source_frame frame = {};
 
-	frame.width = data->allocation.width;
-	frame.height = data->allocation.height;
+	frame.width = cairo_image_surface_get_width(surface);
+	frame.height = cairo_image_surface_get_height(surface);
 	frame.format = VIDEO_FORMAT_BGRA;
-	frame.linesize[0] = data->allocation.width * 4;
+	frame.linesize[0] = cairo_image_surface_get_width(surface) * 4;
 	frame.data[0] = cairo_image_surface_get_data(surface);
 
 	frame.timestamp = data->count++;
