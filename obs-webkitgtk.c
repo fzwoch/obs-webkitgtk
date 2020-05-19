@@ -54,8 +54,8 @@ static gboolean capture(GtkWidget *widget, GdkEvent *event, gpointer user_data)
 					  &data->allocation);
 	}
 
-	cairo_surface_t *surface =
-		gtk_offscreen_window_get_surface(data->window);
+	cairo_surface_t *surface = gtk_offscreen_window_get_surface(
+		GTK_OFFSCREEN_WINDOW(data->window));
 
 	struct obs_source_frame frame = {};
 
