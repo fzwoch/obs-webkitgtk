@@ -143,6 +143,16 @@ static void stop(data_t *data)
 	if (data->signal_id == 0)
 		return;
 
+	// urks, we do not get told when the GTK main thread goes down
+	// if it does.. the lock further down will deadlock.
+	// so check whether we are still alive. and if we are not
+	// just leave. not that will will get some errors printed
+	// in the log regardless..
+	if (g_main_context_acquire(g_main_context_default())) {
+		g_main_context_release(g_main_context_default());
+		return;
+	}
+
 	g_mutex_lock(&data->mutex);
 
 	g_idle_add(stop_gtk, data);
