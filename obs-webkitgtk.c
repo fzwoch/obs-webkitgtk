@@ -29,8 +29,6 @@ typedef struct {
 	GtkWidget *window;
 	WebKitWebView *webview;
 	GtkAllocation allocation;
-	cairo_surface_t *surface;
-	cairo_t *context;
 	int count;
 	gulong signal_id;
 	bool destroy_self;
@@ -51,18 +49,13 @@ static gboolean capture(GtkWidget *widget, GdkEvent *event, gpointer user_data)
 	if (data->signal_id == 0)
 		return FALSE;
 
-	if (data->context == NULL) {
+	if (data->count == 0) {
 		gtk_widget_get_allocation(GTK_WIDGET(data->webview),
 					  &data->allocation);
-
-		data->surface = cairo_image_surface_create(
-			CAIRO_FORMAT_ARGB32, data->allocation.width,
-			data->allocation.height);
-
-		data->context = cairo_create(data->surface);
 	}
 
-	gtk_widget_draw(GTK_WIDGET(data->webview), data->context);
+	cairo_surface_t *surface =
+		gtk_offscreen_window_get_surface(data->window);
 
 	struct obs_source_frame frame = {};
 
@@ -70,7 +63,7 @@ static gboolean capture(GtkWidget *widget, GdkEvent *event, gpointer user_data)
 	frame.height = data->allocation.height;
 	frame.format = VIDEO_FORMAT_BGRA;
 	frame.linesize[0] = data->allocation.width * 4;
-	frame.data[0] = cairo_image_surface_get_data(data->surface);
+	frame.data[0] = cairo_image_surface_get_data(surface);
 
 	frame.timestamp = data->count++;
 
@@ -82,12 +75,6 @@ static gboolean capture(GtkWidget *widget, GdkEvent *event, gpointer user_data)
 static void cleanup(GtkWidget *object, gpointer user_data)
 {
 	data_t *data = user_data;
-
-	cairo_destroy(data->context);
-	data->context = NULL;
-
-	cairo_surface_destroy(data->surface);
-	data->surface = NULL;
 
 	if (data->destroy_self)
 		g_free(data);
