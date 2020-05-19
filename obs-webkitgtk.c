@@ -31,8 +31,7 @@ typedef struct {
 	cairo_t *context;
 	int count;
 	gulong signal_id;
-	GMutex mutex;
-	GCond cond;
+	bool destroy_self;
 
 	obs_source_t *source;
 	obs_data_t *settings;
@@ -75,6 +74,20 @@ static gboolean capture(GtkWidget *widget, GdkEvent *event, gpointer user_data)
 	return TRUE;
 }
 
+static void cleanup(GtkWidget *object, gpointer user_data)
+{
+	data_t *data = user_data;
+
+	cairo_destroy(data->context);
+	data->context = NULL;
+
+	cairo_surface_destroy(data->surface);
+	data->surface = NULL;
+
+	if (data->destroy_self)
+		g_free(data);
+}
+
 static gboolean start_gtk(gpointer user_data)
 {
 	data_t *data = user_data;
@@ -99,9 +112,8 @@ static gboolean start_gtk(gpointer user_data)
 	data->signal_id = g_signal_connect(data->window, "damage-event",
 					   G_CALLBACK(capture), data);
 
-	g_mutex_lock(&data->mutex);
-	g_cond_signal(&data->cond);
-	g_mutex_unlock(&data->mutex);
+	data->signal_id = g_signal_connect(data->window, "destroy",
+					   G_CALLBACK(cleanup), data);
 
 	return FALSE;
 }
@@ -110,32 +122,15 @@ static gboolean stop_gtk(gpointer user_data)
 {
 	data_t *data = user_data;
 
-	g_signal_handler_disconnect(data->window, data->signal_id);
-	data->signal_id = 0;
-
 	gtk_widget_destroy(data->window);
-
-	cairo_destroy(data->context);
-	data->context = NULL;
-
-	cairo_surface_destroy(data->surface);
-	data->surface = NULL;
-
-	g_mutex_lock(&data->mutex);
-	g_cond_signal(&data->cond);
-	g_mutex_unlock(&data->mutex);
+	data->window = NULL;
 
 	return FALSE;
 }
 
 static void start(data_t *data)
 {
-	g_mutex_lock(&data->mutex);
-
 	g_idle_add(start_gtk, data);
-
-	g_cond_wait(&data->cond, &data->mutex);
-	g_mutex_unlock(&data->mutex);
 }
 
 static void stop(data_t *data)
@@ -143,22 +138,9 @@ static void stop(data_t *data)
 	if (data->signal_id == 0)
 		return;
 
-	// urks, we do not get told when the GTK main thread goes down
-	// if it does.. the lock further down will deadlock.
-	// so check whether we are still alive. and if we are not
-	// just leave. not that will will get some errors printed
-	// in the log regardless..
-	if (g_main_context_acquire(g_main_context_default())) {
-		g_main_context_release(g_main_context_default());
-		return;
-	}
-
-	g_mutex_lock(&data->mutex);
-
 	g_idle_add(stop_gtk, data);
 
-	g_cond_wait(&data->cond, &data->mutex);
-	g_mutex_unlock(&data->mutex);
+	data->signal_id = 0;
 }
 
 static void update(void *p, obs_data_t *settings)
@@ -178,9 +160,6 @@ static void *create(obs_data_t *settings, obs_source_t *source)
 {
 	data_t *data = g_new0(data_t, 1);
 
-	g_mutex_init(&data->mutex);
-	g_cond_init(&data->cond);
-
 	data->source = source;
 	data->settings = settings;
 
@@ -191,12 +170,9 @@ static void destroy(void *p)
 {
 	data_t *data = p;
 
+	data->destroy_self = TRUE;
+
 	stop(data);
-
-	g_mutex_clear(&data->mutex);
-	g_cond_clear(&data->cond);
-
-	g_free(data);
 }
 
 static void get_defaults(obs_data_t *settings)
