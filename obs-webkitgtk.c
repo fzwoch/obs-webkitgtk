@@ -161,12 +161,16 @@ static void stop(data_t *data)
 	g_mutex_unlock(&data->mutex);
 }
 
-static void update(void *data, obs_data_t *settings)
+static void update(void *p, obs_data_t *settings)
 {
-	if (((data_t *)data)->signal_id == 0)
-		return;
+	data_t *data = p;
 
 	stop(data);
+
+	if (!obs_data_get_bool(settings, "keep_running") &&
+	    !obs_source_showing(data->source))
+		return;
+
 	start(data);
 }
 
@@ -200,6 +204,7 @@ static void get_defaults(obs_data_t *settings)
 	obs_data_set_default_string(settings, "url", "https://obsproject.com");
 	obs_data_set_default_int(settings, "width", 800);
 	obs_data_set_default_int(settings, "height", 600);
+	obs_data_set_default_bool(settings, "keep_running", true);
 }
 
 static obs_properties_t *get_properties(void *p)
@@ -209,18 +214,26 @@ static obs_properties_t *get_properties(void *p)
 	obs_properties_add_text(props, "url", "URL", OBS_TEXT_DEFAULT);
 	obs_properties_add_int(props, "width", "Width", 0, 4096, 1);
 	obs_properties_add_int(props, "height", "Height", 0, 4096, 1);
+	obs_properties_add_bool(props, "keep_running",
+				"Keep running when hidden");
 
 	return props;
 }
 
-static void show(void *data)
+static void show(void *p)
 {
-	start(data);
+	data_t *data = p;
+
+	if (data->signal_id == 0)
+		start(data);
 }
 
-static void hide(void *data)
+static void hide(void *p)
 {
-	stop(data);
+	data_t *data = p;
+
+	if (!obs_data_get_bool(data->settings, "keep_running"))
+		stop(data);
 }
 
 bool obs_module_load(void)
