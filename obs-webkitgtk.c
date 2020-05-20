@@ -228,7 +228,11 @@ bool obs_module_load(void)
 
 	// okay.. we need a run loop.. some other components
 	// may have already one running. i thinks thats bad.
-	thread = g_thread_new(NULL, gtk_loop, NULL);
+	if (g_main_context_acquire(g_main_context_default())) {
+		thread = g_thread_new(NULL, gtk_loop, NULL);
+
+		g_main_context_release(g_main_context_default());
+	}
 
 	return true;
 }
