@@ -19,19 +19,17 @@
  */
 
 #include <obs/obs-module.h>
-#include <webkit2/webkit2.h>
+#include <unistd.h>
+#include <glib.h>
+#include <signal.h>
 
 OBS_DECLARE_MODULE()
 
-GThread *thread;
-
 typedef struct {
-	GtkWidget *window;
-	WebKitWebView *webview;
+	GThread *thread;
+	GPid pid;
+	gint pipe;
 	int count;
-	gulong signal_id;
-	bool destroy_self;
-
 	obs_source_t *source;
 	obs_data_t *settings;
 } data_t;
@@ -41,91 +39,92 @@ static const char *get_name(void *type_data)
 	return "WebkitGtk";
 }
 
-static gboolean capture(GtkWidget *widget, GdkEvent *event, gpointer user_data)
+static gpointer thread(gpointer user_data)
 {
 	data_t *data = user_data;
 
-	if (data->signal_id == 0)
-		return FALSE;
+	int width = obs_data_get_int(data->settings, "width");
+	int height = obs_data_get_int(data->settings, "height");
 
-	cairo_surface_t *surface = gtk_offscreen_window_get_surface(
-		GTK_OFFSCREEN_WINDOW(data->window));
+	guint8 *buffer = g_new(guint8, width * height * 4);
 
-	struct obs_source_frame frame = {};
+	while (1) {
+		guint8 *ptr = buffer;
+		gint buffer_size = width * height * 4;
 
-	frame.width = cairo_image_surface_get_width(surface);
-	frame.height = cairo_image_surface_get_height(surface);
-	frame.format = VIDEO_FORMAT_BGRA;
-	frame.linesize[0] = cairo_image_surface_get_stride(surface);
-	frame.data[0] = cairo_image_surface_get_data(surface);
+		while (buffer_size > 0) {
+			ssize_t size = read(data->pipe, ptr, buffer_size);
+			if (size <= 0) {
+				goto done;
+			}
 
-	frame.timestamp = data->count++;
+			ptr += size;
+			buffer_size -= size;
 
-	obs_source_output_video(data->source, &frame);
+			if (buffer_size == 0) {
+				break;
+			}
+		}
 
-	return TRUE;
-}
+		struct obs_source_frame frame = {};
 
-static void cleanup(GtkWidget *object, gpointer user_data)
-{
-	data_t *data = user_data;
+		frame.width = width;
+		frame.height = height;
+		frame.format = VIDEO_FORMAT_BGRA;
+		frame.linesize[0] = width * 4;
+		frame.data[0] = buffer;
 
-	if (data->destroy_self)
-		g_free(data);
-}
+		frame.timestamp = data->count++;
 
-static gboolean start_gtk(gpointer user_data)
-{
-	data_t *data = user_data;
+		obs_source_output_video(data->source, &frame);
+	}
 
-	data->count = 0;
+done:
+	g_free(buffer);
 
-	data->window = gtk_offscreen_window_new();
-	gtk_window_set_default_size(GTK_WINDOW(data->window),
-				    obs_data_get_int(data->settings, "width"),
-				    obs_data_get_int(data->settings, "height"));
-
-	data->webview = WEBKIT_WEB_VIEW(webkit_web_view_new());
-
-	gtk_container_add(GTK_CONTAINER(data->window),
-			  GTK_WIDGET(data->webview));
-
-	webkit_web_view_load_uri(data->webview,
-				 obs_data_get_string(data->settings, "url"));
-
-	gtk_widget_show_all(data->window);
-
-	data->signal_id = g_signal_connect(data->window, "damage-event",
-					   G_CALLBACK(capture), data);
-
-	g_signal_connect(data->window, "destroy", G_CALLBACK(cleanup), data);
-
-	return FALSE;
-}
-
-static gboolean stop_gtk(gpointer user_data)
-{
-	data_t *data = user_data;
-
-	gtk_widget_destroy(data->window);
-	data->window = NULL;
-
-	return FALSE;
+	return NULL;
 }
 
 static void start(data_t *data)
 {
-	g_idle_add(start_gtk, data);
+	gchar *path = g_file_read_link("/proc/self/exe", NULL);
+
+	gchar *app =
+		g_strdup_printf("%s/../lib/obs-plugins/obs-webkitgtk-helper",
+				g_path_get_dirname(path));
+
+	char width[16], height[16];
+
+	g_snprintf(width, sizeof(width), "%lld",
+		   obs_data_get_int(data->settings, "width"));
+	g_snprintf(height, sizeof(height), "%lld",
+		   obs_data_get_int(data->settings, "height"));
+
+	char *helper[] = {app, width, height,
+			  (char *)obs_data_get_string(data->settings, "url"),
+			  NULL};
+
+	g_spawn_async_with_pipes(NULL, helper, NULL, G_SPAWN_DEFAULT, NULL,
+				 NULL, &data->pid, NULL, &data->pipe, NULL,
+				 NULL);
+
+	g_free(path);
+	g_free(app);
+
+	data->count = 0;
+
+	data->thread = g_thread_new("", thread, data);
 }
 
 static void stop(data_t *data)
 {
-	if (data->signal_id == 0)
+	if (data->pid == 0)
 		return;
 
-	data->signal_id = 0;
+	kill(data->pid, SIGINT);
+	data->pid = 0;
 
-	g_idle_add(stop_gtk, data);
+	g_thread_join(data->thread);
 }
 
 static void update(void *p, obs_data_t *settings)
@@ -155,8 +154,6 @@ static void destroy(void *p)
 {
 	data_t *data = p;
 
-	data->destroy_self = TRUE;
-
 	stop(data);
 }
 
@@ -185,7 +182,7 @@ static void show(void *p)
 {
 	data_t *data = p;
 
-	if (data->signal_id == 0)
+	if (data->pid == 0)
 		start(data);
 }
 
@@ -195,13 +192,6 @@ static void hide(void *p)
 
 	if (!obs_data_get_bool(data->settings, "keep_running"))
 		stop(data);
-}
-
-static gpointer gtk_loop(gpointer data)
-{
-	gtk_main();
-
-	return NULL;
 }
 
 bool obs_module_load(void)
@@ -225,14 +215,6 @@ bool obs_module_load(void)
 	};
 
 	obs_register_source(&info);
-
-	// okay.. we need a run loop.. some other components
-	// may have already one running. i thinks thats bad.
-	if (g_main_context_acquire(g_main_context_default())) {
-		thread = g_thread_new(NULL, gtk_loop, NULL);
-
-		g_main_context_release(g_main_context_default());
-	}
 
 	return true;
 }

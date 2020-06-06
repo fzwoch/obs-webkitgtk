@@ -25,6 +25,16 @@ shared_library('obs-webkitgtk',
     name_prefix : '',
     dependencies : [
         dependency('libobs'),
+        dependency('glib-2.0'),
+    ],
+    install : true,
+    install_dir : get_option('libdir') + '/obs-plugins'
+)
+
+executable('obs-webkitgtk-helper',
+    'obs-webkitgtk-helper.c',
+    name_prefix : '',
+    dependencies : [
         dependency('gtk+-3.0'),
         dependency('webkit2gtk-4.0'),
     ],
