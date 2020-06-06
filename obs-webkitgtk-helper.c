@@ -48,6 +48,9 @@ int main(int argc, char **argv)
 
 	WebKitWebView *webview = WEBKIT_WEB_VIEW(webkit_web_view_new());
 
+	GdkRGBA bg = {1.0, 1.0, 0.0, 0.0};
+	webkit_web_view_set_background_color(webview, &bg);
+
 	gtk_container_add(GTK_CONTAINER(window), GTK_WIDGET(webview));
 	webkit_web_view_load_uri(webview, argv[3]);
 	gtk_widget_show_all(window);
