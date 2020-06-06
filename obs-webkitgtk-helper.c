@@ -25,10 +25,10 @@ static gboolean capture(GtkWidget *widget, GdkEvent *event, gpointer user_data)
 	cairo_surface_t *surface = gtk_offscreen_window_get_surface(
 		GTK_OFFSCREEN_WINDOW(user_data));
 
-	fwrite(cairo_image_surface_get_data(surface), 1,
+	fwrite(cairo_image_surface_get_data(surface),
 	       cairo_image_surface_get_stride(surface) *
 		       cairo_image_surface_get_height(surface),
-	       stdout);
+	       1, stdout);
 
 	return TRUE;
 }
