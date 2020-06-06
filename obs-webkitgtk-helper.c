@@ -46,6 +46,14 @@ int main(int argc, char **argv)
 	gtk_window_set_default_size(GTK_WINDOW(window), atoi(argv[1]),
 				    atoi(argv[2]));
 
+	GtkCssProvider *css = gtk_css_provider_new();
+	gtk_css_provider_load_from_data(
+		css, "* { background-color: transparent; }", -1, NULL);
+	gtk_style_context_add_provider(gtk_widget_get_style_context(window),
+				       GTK_STYLE_PROVIDER(css),
+				       GTK_STYLE_PROVIDER_PRIORITY_USER);
+	g_object_unref(css);
+
 	WebKitWebView *webview = WEBKIT_WEB_VIEW(webkit_web_view_new());
 
 	GdkRGBA bg = {1.0, 1.0, 0.0, 0.0};
