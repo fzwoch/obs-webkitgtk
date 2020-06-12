@@ -101,6 +101,13 @@ static void start(data_t *data)
 	}
 
 	if (g_file_test(app, G_FILE_TEST_IS_EXECUTABLE) == FALSE) {
+		g_free(app);
+
+		app = g_strdup_printf("%s/obs-plugins/obs-webkitgtk-helper",
+				      g_path_get_dirname(path));
+	}
+
+	if (g_file_test(app, G_FILE_TEST_IS_EXECUTABLE) == FALSE) {
 		blog(LOG_ERROR,
 		     "Could not find obs-webkitgtk-helper application");
 		g_free(app);
