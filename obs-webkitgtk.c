@@ -93,6 +93,21 @@ static void start(data_t *data)
 		g_strdup_printf("%s/../lib/obs-plugins/obs-webkitgtk-helper",
 				g_path_get_dirname(path));
 
+	if (g_file_test(app, G_FILE_TEST_IS_EXECUTABLE) == FALSE) {
+		g_free(app);
+
+		app = g_strdup_printf("%s/obs-webkitgtk-helper",
+				      g_path_get_dirname(path));
+	}
+
+	if (g_file_test(app, G_FILE_TEST_IS_EXECUTABLE) == FALSE) {
+		blog(LOG_ERROR,
+		     "Could not find obs-webkitgtk-helper application");
+		g_free(app);
+
+		return;
+	}
+
 	char width[16], height[16];
 
 	g_snprintf(width, sizeof(width), "%lld",
@@ -104,16 +119,23 @@ static void start(data_t *data)
 			  (char *)obs_data_get_string(data->settings, "url"),
 			  NULL};
 
-	g_spawn_async_with_pipes(NULL, helper, NULL, G_SPAWN_DEFAULT, NULL,
-				 NULL, &data->pid, NULL, &data->pipe, NULL,
-				 NULL);
+	gboolean res = g_spawn_async_with_pipes(NULL, helper, NULL,
+						G_SPAWN_DEFAULT, NULL, NULL,
+						&data->pid, NULL, &data->pipe,
+						NULL, NULL);
 
 	g_free(path);
 	g_free(app);
 
+	if (res == FALSE) {
+		blog(LOG_ERROR, "Could not spawn obs-webkitgtk-helper process");
+
+		return;
+	}
+
 	data->count = 0;
 
-	data->thread = g_thread_new("", thread, data);
+	data->thread = g_thread_new("obs-webkitgtk-helper", thread, data);
 }
 
 static void stop(data_t *data)
