@@ -176,6 +176,9 @@ static void *create(obs_data_t *settings, obs_source_t *source)
 	data->source = source;
 	data->settings = settings;
 
+	if (obs_data_get_bool(data->settings, "keep_running"))
+		start(data);
+
 	return data;
 }
 
