@@ -34,8 +34,6 @@ static gboolean capture(GtkWidget *widget, GdkEvent *event, gpointer user_data)
 		GdkPixbuf *pix = gtk_offscreen_window_get_pixbuf(
 			GTK_OFFSCREEN_WINDOW(user_data));
 
-		gdk_pixbuf_get_width(pix);
-
 		fwrite(gdk_pixbuf_read_pixels(pix),
 		       gdk_pixbuf_get_rowstride(pix) *
 			       gdk_pixbuf_get_height(pix),
