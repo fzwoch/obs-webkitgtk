@@ -19,43 +19,29 @@
  */
 
 #include <webkit2/webkit2.h>
-#include <cairo-xlib.h>
 
 static gboolean capture(GtkWidget *widget, GdkEvent *event, gpointer user_data)
 {
 	cairo_surface_t *surface = gtk_offscreen_window_get_surface(
 		GTK_OFFSCREEN_WINDOW(user_data));
 
-	switch (cairo_surface_get_type(surface)) {
-	case CAIRO_SURFACE_TYPE_IMAGE:
+	if (cairo_surface_get_type(surface) == CAIRO_SURFACE_TYPE_IMAGE) {
 		fwrite(cairo_image_surface_get_data(surface),
 		       cairo_image_surface_get_stride(surface) *
 			       cairo_image_surface_get_height(surface),
 		       1, stdout);
-		break;
-	case CAIRO_SURFACE_TYPE_XLIB: {
-		cairo_surface_t *c = cairo_image_surface_create(
-			CAIRO_FORMAT_ARGB32,
-			cairo_xlib_surface_get_width(surface),
-			cairo_xlib_surface_get_height(surface));
-		cairo_t *ctx = cairo_create(c);
-		cairo_set_source_surface(ctx, surface, 0, 0);
-		cairo_rectangle(ctx, 0, 0,
-				cairo_xlib_surface_get_width(surface),
-				cairo_xlib_surface_get_height(surface));
-		cairo_fill(ctx);
+	} else {
+		GdkPixbuf *pix = gtk_offscreen_window_get_pixbuf(
+			GTK_OFFSCREEN_WINDOW(user_data));
 
-		fwrite(cairo_image_surface_get_data(c),
-		       cairo_image_surface_get_stride(c) *
-			       cairo_image_surface_get_height(c),
+		gdk_pixbuf_get_width(pix);
+
+		fwrite(gdk_pixbuf_get_pixels(pix),
+		       gdk_pixbuf_get_rowstride(pix) *
+			       gdk_pixbuf_get_height(pix),
 		       1, stdout);
 
-		cairo_surface_destroy(c);
-		cairo_destroy(ctx);
-	} break;
-	default:
-		g_print("Unhandled surface type\n");
-		break;
+		g_object_unref(pix);
 	}
 
 	return TRUE;
