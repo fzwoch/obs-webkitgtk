@@ -154,6 +154,9 @@ static void stop(data_t *data)
 	data->pid = 0;
 
 	g_thread_join(data->thread);
+
+	if (obs_data_get_bool(data->settings, "clear_after_stop"))
+		obs_source_output_video(data->source, NULL);
 }
 
 static void update(void *p, obs_data_t *settings)
@@ -195,6 +198,7 @@ static void get_defaults(obs_data_t *settings)
 	obs_data_set_default_int(settings, "width", 800);
 	obs_data_set_default_int(settings, "height", 600);
 	obs_data_set_default_bool(settings, "keep_running", true);
+	obs_data_set_default_bool(settings, "clear_after_stop", true);
 }
 
 static obs_properties_t *get_properties(void *p)
@@ -206,6 +210,8 @@ static obs_properties_t *get_properties(void *p)
 	obs_properties_add_int(props, "height", "Height", 0, 4096, 1);
 	obs_properties_add_bool(props, "keep_running",
 				"Keep running when hidden");
+	obs_properties_add_bool(props, "clear_after_stop",
+				"Clear data after stop");
 
 	return props;
 }
