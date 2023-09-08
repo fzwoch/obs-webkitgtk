@@ -38,5 +38,5 @@ executable('obs-webkitgtk-helper',
         dependency('webkit2gtk-4.0'),
     ],
     install : true,
-    install_dir : join_paths(get_option('libdir'), 'obs-plugins'),
+    install_dir : join_paths(get_option('libexecdir'), 'obs-plugins'),
 )

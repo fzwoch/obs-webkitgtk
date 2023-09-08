@@ -90,8 +90,22 @@ static void start(data_t *data)
 	gchar *path = g_file_read_link("/proc/self/exe", NULL);
 
 	gchar *app =
-		g_strdup_printf("%s/../lib/obs-plugins/obs-webkitgtk-helper",
+		g_strdup_printf("%s/../libexec/obs-plugins/obs-webkitgtk-helper",
 				g_path_get_dirname(path));
+
+	if (g_file_test(app, G_FILE_TEST_IS_EXECUTABLE) == FALSE) {
+		g_free(app);
+
+		app = g_strdup_printf("%s/../lib64/obs-plugins/obs-webkitgtk-helper",
+				      g_path_get_dirname(path));
+	}
+
+	if (g_file_test(app, G_FILE_TEST_IS_EXECUTABLE) == FALSE) {
+		g_free(app);
+
+		app = g_strdup_printf("%s/../lib/obs-plugins/obs-webkitgtk-helper",
+				      g_path_get_dirname(path));
+	}
 
 	if (g_file_test(app, G_FILE_TEST_IS_EXECUTABLE) == FALSE) {
 		g_free(app);
