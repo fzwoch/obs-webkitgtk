@@ -36,7 +36,7 @@ typedef struct {
 
 static const char *get_name(void *type_data)
 {
-	return "WebkitGtk";
+	return "WebKitGTK";
 }
 
 static gpointer thread(gpointer user_data)
