@@ -20,6 +20,17 @@
 
 #include <webkit2/webkit2.h>
 
+#define SECONDS_TIMEOUT 60
+
+static guint timeout_id;
+
+static gboolean timeout(gpointer user_data)
+{
+	gtk_widget_queue_draw(user_data);
+
+	return TRUE;
+}
+
 static gboolean capture(GtkWidget *widget, GdkEvent *event, gpointer user_data)
 {
 	size_t res;
@@ -46,6 +57,9 @@ static gboolean capture(GtkWidget *widget, GdkEvent *event, gpointer user_data)
 	if (res == 0) {
 		gtk_main_quit();
 	}
+
+	g_source_remove(timeout_id);
+	timeout_id = g_timeout_add_seconds(SECONDS_TIMEOUT, timeout, user_data);
 
 	return TRUE;
 }
@@ -81,6 +95,8 @@ int main(int argc, char **argv)
 	gtk_widget_show_all(window);
 
 	g_signal_connect(window, "damage-event", G_CALLBACK(capture), window);
+
+	timeout_id = g_timeout_add_seconds(SECONDS_TIMEOUT, timeout, window);
 
 	gtk_main();
 
