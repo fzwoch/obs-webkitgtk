@@ -208,7 +208,7 @@ static void destroy(void *p)
 
 static void get_defaults(obs_data_t *settings)
 {
-	obs_data_set_default_string(settings, "url", "https://obsproject.com");
+	obs_data_set_default_string(settings, "url", "https://obsproject.com/browser-source");
 	obs_data_set_default_int(settings, "width", 800);
 	obs_data_set_default_int(settings, "height", 600);
 	obs_data_set_default_bool(settings, "keep_running", true);
