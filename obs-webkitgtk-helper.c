@@ -53,6 +53,7 @@ static gboolean capture(GtkWidget *widget, GdkEvent *event, gpointer user_data)
 
 		g_object_unref(pix);
 	}
+	fflush(stdout);
 
 	if (res == 0) {
 		gtk_main_quit();
