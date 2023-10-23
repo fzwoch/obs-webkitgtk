@@ -70,7 +70,7 @@ static gpointer thread(gpointer user_data)
 
 		frame.width = width;
 		frame.height = height;
-		frame.format = VIDEO_FORMAT_BGRA;
+		frame.format = obs_data_get_bool(data->settings, "swap_colors") ? VIDEO_FORMAT_RGBA : VIDEO_FORMAT_BGRA;
 		frame.linesize[0] = width * 4;
 		frame.data[0] = buffer;
 
@@ -213,6 +213,7 @@ static void get_defaults(obs_data_t *settings)
 	obs_data_set_default_int(settings, "height", 600);
 	obs_data_set_default_bool(settings, "keep_running", true);
 	obs_data_set_default_bool(settings, "clear_after_stop", true);
+	obs_data_set_default_bool(settings, "swap_colors", false);
 }
 
 static obs_properties_t *get_properties(void *p)
@@ -226,6 +227,8 @@ static obs_properties_t *get_properties(void *p)
 				"Keep running when hidden");
 	obs_properties_add_bool(props, "clear_after_stop",
 				"Clear data after stop");
+	obs_properties_add_bool(props, "swap_colors",
+				"Swap Red/Blue channels");
 
 	return props;
 }
