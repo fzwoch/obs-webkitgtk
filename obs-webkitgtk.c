@@ -70,7 +70,9 @@ static gpointer thread(gpointer user_data)
 
 		frame.width = width;
 		frame.height = height;
-		frame.format = obs_data_get_bool(data->settings, "swap_colors") ? VIDEO_FORMAT_RGBA : VIDEO_FORMAT_BGRA;
+		frame.format = obs_data_get_bool(data->settings, "swap_colors")
+				       ? VIDEO_FORMAT_RGBA
+				       : VIDEO_FORMAT_BGRA;
 		frame.linesize[0] = width * 4;
 		frame.data[0] = buffer;
 
@@ -89,22 +91,24 @@ static void start(data_t *data)
 {
 	gchar *path = g_file_read_link("/proc/self/exe", NULL);
 
-	gchar *app =
-		g_strdup_printf("%s/../libexec/obs-plugins/obs-webkitgtk-helper",
-				g_path_get_dirname(path));
+	gchar *app = g_strdup_printf(
+		"%s/../libexec/obs-plugins/obs-webkitgtk-helper",
+		g_path_get_dirname(path));
 
 	if (g_file_test(app, G_FILE_TEST_IS_EXECUTABLE) == FALSE) {
 		g_free(app);
 
-		app = g_strdup_printf("%s/../lib64/obs-plugins/obs-webkitgtk-helper",
-				      g_path_get_dirname(path));
+		app = g_strdup_printf(
+			"%s/../lib64/obs-plugins/obs-webkitgtk-helper",
+			g_path_get_dirname(path));
 	}
 
 	if (g_file_test(app, G_FILE_TEST_IS_EXECUTABLE) == FALSE) {
 		g_free(app);
 
-		app = g_strdup_printf("%s/../lib/obs-plugins/obs-webkitgtk-helper",
-				      g_path_get_dirname(path));
+		app = g_strdup_printf(
+			"%s/../lib/obs-plugins/obs-webkitgtk-helper",
+			g_path_get_dirname(path));
 	}
 
 	if (g_file_test(app, G_FILE_TEST_IS_EXECUTABLE) == FALSE) {
@@ -208,7 +212,8 @@ static void destroy(void *p)
 
 static void get_defaults(obs_data_t *settings)
 {
-	obs_data_set_default_string(settings, "url", "https://obsproject.com/browser-source");
+	obs_data_set_default_string(settings, "url",
+				    "https://obsproject.com/browser-source");
 	obs_data_set_default_int(settings, "width", 800);
 	obs_data_set_default_int(settings, "height", 600);
 	obs_data_set_default_bool(settings, "keep_running", true);
@@ -227,8 +232,7 @@ static obs_properties_t *get_properties(void *p)
 				"Keep running when hidden");
 	obs_properties_add_bool(props, "clear_after_stop",
 				"Clear data after stop");
-	obs_properties_add_bool(props, "swap_colors",
-				"Swap Red/Blue channels");
+	obs_properties_add_bool(props, "swap_colors", "Swap Red/Blue channels");
 
 	return props;
 }
