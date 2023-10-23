@@ -39,17 +39,17 @@ static gboolean capture(GtkWidget *widget, GdkEvent *event, gpointer user_data)
 
 	if (cairo_surface_get_type(surface) == CAIRO_SURFACE_TYPE_IMAGE) {
 		res = fwrite(cairo_image_surface_get_data(surface),
-		       cairo_image_surface_get_stride(surface) *
-			       cairo_image_surface_get_height(surface),
-		       1, stdout);
+			     cairo_image_surface_get_stride(surface) *
+				     cairo_image_surface_get_height(surface),
+			     1, stdout);
 	} else {
 		GdkPixbuf *pix = gtk_offscreen_window_get_pixbuf(
 			GTK_OFFSCREEN_WINDOW(user_data));
 
 		res = fwrite(gdk_pixbuf_read_pixels(pix),
-		       gdk_pixbuf_get_rowstride(pix) *
-			       gdk_pixbuf_get_height(pix),
-		       1, stdout);
+			     gdk_pixbuf_get_rowstride(pix) *
+				     gdk_pixbuf_get_height(pix),
+			     1, stdout);
 
 		g_object_unref(pix);
 	}
@@ -86,6 +86,10 @@ int main(int argc, char **argv)
 	g_object_unref(css);
 
 	WebKitWebView *webview = WEBKIT_WEB_VIEW(webkit_web_view_new());
+
+	WebKitSettings *settings = webkit_web_view_get_settings(webview);
+	webkit_settings_set_hardware_acceleration_policy(
+		settings, WEBKIT_HARDWARE_ACCELERATION_POLICY_NEVER);
 
 	GdkRGBA bg = {1.0, 1.0, 0.0, 0.0};
 	webkit_web_view_set_background_color(webview, &bg);
