@@ -31,11 +31,16 @@ shared_library('obs-webkitgtk',
     install_dir : join_paths(get_option('libdir'), 'obs-plugins')
 )
 
+webkit_dep = dependency('webkit2gtk-4.1', required : false)
+if not webkit_dep.found()
+    webkit_dep = dependency('webkit2gtk-4.0')
+endif
+
 executable('obs-webkitgtk-helper',
     'obs-webkitgtk-helper.c',
     dependencies : [
         dependency('gtk+-3.0'),
-        dependency('webkit2gtk-4.1'),
+        webkit_dep,
     ],
     install : true,
     install_dir : join_paths(get_option('libexecdir'), 'obs-plugins'),
